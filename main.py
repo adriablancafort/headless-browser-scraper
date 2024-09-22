@@ -20,26 +20,31 @@ def close_browser(playwright: Playwright, browser: Browser) -> None:
 def scrape_amazon_com(page: Page, ASIN: int) -> None:
     """Scrape the Amazon product page for the given ASIN."""
 
-    def log_request(request):
-        print(f"Request: {request.url}")
-        request.start_time = time.time()
+    request_count = 0
+    total_size = 0
 
-    def log_response(response):
-        request = response.request
-        print(f"Response: {response.url}")
-        print(f"Status: {response.status}")
-        print(f"Response time: {time.time() - request.start_time:.2f} seconds")
-        print(f"Resource size: {len(response.body())} bytes")
+    def on_request(request):
+        nonlocal request_count
+        request_count += 1
 
-    def log_request_finished(request):
-        print(f"Request finished: {request.url}")
+    def on_response(response):
+        nonlocal total_size
+        try:
+            total_size += len(response.body())
+        except Exception:
+            pass
 
-    page.on("request", log_request)
-    page.on("response", log_response)
-    page.on("requestfinished", log_request_finished)
+    page.on("request", on_request)
+    page.on("response", on_response)
 
     URL = f"https://www.amazon.com/dp/{ASIN}"
+
+    start_time = time.time()
+
     page.goto(URL)
+
+    end_time = time.time()
+    total_time = end_time - start_time
 
     title_element = page.query_selector('span#productTitle')
     price_symbol_element = page.query_selector('span.a-price-symbol')
@@ -55,6 +60,12 @@ def scrape_amazon_com(page: Page, ASIN: int) -> None:
     print(f"Price Symbol: {PRICE_SYMBOL}")
     print(f"Price Whole: {PRICE_WHOLE}")
     print(f"Price Fraction: {PRICE_FRACTION}")
+
+    print("="*20, "Results", "="*20)
+    print(f"Total requests: {request_count}")
+    print(f"Total size transferred: {total_size} bytes")
+    print(f"Total time taken: {total_time:.2f} seconds")
+    print("="*50)
 
 
 def main() -> None:
