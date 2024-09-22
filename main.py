@@ -1,4 +1,4 @@
-from playwright.sync_api import sync_playwright, Playwright, Browser, Page
+from playwright.sync_api import sync_playwright, Playwright, Browser, Page, Request, Route
 import time
 
 
@@ -17,37 +17,24 @@ def close_browser(playwright: Playwright, browser: Browser) -> None:
     playwright.stop()
 
 
-def block_all_resources(route):
-    """Block all the resources except the document."""
+def block_all_resources(route: Route) -> None:
+    """Block all the resources except HTML documents."""
 
-    if route.request.resource_type == "document":
+    if route.request.resource_type != "document":
+        route.abort()
+    elif "amazon-adsystem.com" in route.request.url:
+        route.abort()
+    else:
         print(f"Allowing: {route.request.url}")
         route.continue_()
-    else:
-        route.abort()
 
 
-def scrape_amazon_com(page: Page, ASIN: int) -> None:
+def scrape_amazon_com(page: Page, ASIN: str) -> None:
     """Scrape the Amazon product page for the given ASIN."""
-
-    request_count = 0
-
-    def on_request(request):
-        nonlocal request_count
-        if request.resource_type == "document":
-            request_count += 1
-
-    page.route("**/*", block_all_resources) # Block everything except HTML
-    page.on("request", on_request)
 
     URL = f"https://www.amazon.com/dp/{ASIN}"
 
-    start_time = time.time()
-
     page.goto(URL)
-
-    end_time = time.time()
-    total_time = end_time - start_time
 
     title_element = page.query_selector('span#productTitle')
     price_symbol_element = page.query_selector('span.a-price-symbol')
@@ -64,16 +51,13 @@ def scrape_amazon_com(page: Page, ASIN: int) -> None:
     print(f"Price Whole: {PRICE_WHOLE}")
     print(f"Price Fraction: {PRICE_FRACTION}")
 
-    print("="*20, "Results", "="*20)
-    print(f"Total requests: {request_count}")
-    print(f"Total time taken: {total_time:.2f} seconds")
-    print("="*50)
-
 
 def main() -> None:
     ASINs = ["B09LNW3CY2", "B009KYJAJY", "B0B2D77YB8", "B0D3KPGFHL"]
     playwright, browser = launch_browser()
-    page = browser.new_page()
+    context = browser.new_context()
+    page = context.new_page()
+    page.route("**/*", block_all_resources) # Block everything except HTML documents
     try:
         for ASIN in ASINs:
             scrape_amazon_com(page, ASIN)
