@@ -17,25 +17,28 @@ def close_browser(playwright: Playwright, browser: Browser) -> None:
     playwright.stop()
 
 
+def block_all_resources(route):
+    """Block all the resources except the document."""
+
+    if route.request.resource_type == "document":
+        print(f"Allowing: {route.request.url}")
+        route.continue_()
+    else:
+        route.abort()
+
+
 def scrape_amazon_com(page: Page, ASIN: int) -> None:
     """Scrape the Amazon product page for the given ASIN."""
 
     request_count = 0
-    total_size = 0
 
     def on_request(request):
         nonlocal request_count
-        request_count += 1
+        if request.resource_type == "document":
+            request_count += 1
 
-    def on_response(response):
-        nonlocal total_size
-        try:
-            total_size += len(response.body())
-        except Exception:
-            pass
-
+    page.route("**/*", block_all_resources) # Block everything except HTML
     page.on("request", on_request)
-    page.on("response", on_response)
 
     URL = f"https://www.amazon.com/dp/{ASIN}"
 
@@ -63,7 +66,6 @@ def scrape_amazon_com(page: Page, ASIN: int) -> None:
 
     print("="*20, "Results", "="*20)
     print(f"Total requests: {request_count}")
-    print(f"Total size transferred: {total_size} bytes")
     print(f"Total time taken: {total_time:.2f} seconds")
     print("="*50)
 
