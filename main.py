@@ -1,4 +1,5 @@
 from playwright.sync_api import sync_playwright, Playwright, Browser, Page
+import time
 
 
 def launch_browser() -> tuple[Playwright, Browser]:
@@ -18,6 +19,24 @@ def close_browser(playwright: Playwright, browser: Browser) -> None:
 
 def scrape_amazon_com(page: Page, ASIN: int) -> None:
     """Scrape the Amazon product page for the given ASIN."""
+
+    def log_request(request):
+        print(f"Request: {request.url}")
+        request.start_time = time.time()
+
+    def log_response(response):
+        request = response.request
+        print(f"Response: {response.url}")
+        print(f"Status: {response.status}")
+        print(f"Response time: {time.time() - request.start_time:.2f} seconds")
+        print(f"Resource size: {len(response.body())} bytes")
+
+    def log_request_finished(request):
+        print(f"Request finished: {request.url}")
+
+    page.on("request", log_request)
+    page.on("response", log_response)
+    page.on("requestfinished", log_request_finished)
 
     URL = f"https://www.amazon.com/dp/{ASIN}"
     page.goto(URL)
