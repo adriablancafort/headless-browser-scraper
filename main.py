@@ -1,5 +1,4 @@
-from playwright.sync_api import sync_playwright, Playwright, Browser, Page, Request, Route
-import time
+from playwright.sync_api import sync_playwright, Playwright, Browser, Page, Route
 
 
 def launch_browser() -> tuple[Playwright, Browser]:
@@ -22,10 +21,9 @@ def block_all_resources(route: Route) -> None:
 
     if route.request.resource_type != "document":
         route.abort()
-    elif "amazon-adsystem.com" in route.request.url:
+    elif "ads" in route.request.url or "analytics" in route.request.url:
         route.abort()
     else:
-        print(f"Allowing: {route.request.url}")
         route.continue_()
 
 
@@ -53,11 +51,14 @@ def scrape_amazon_com(page: Page, ASIN: str) -> None:
 
 
 def main() -> None:
-    ASINs = ["B09LNW3CY2", "B009KYJAJY", "B0B2D77YB8", "B0D3KPGFHL"]
     playwright, browser = launch_browser()
-    context = browser.new_context()
+    context = browser.new_context(java_script_enabled=False)
     page = context.new_page()
+
     page.route("**/*", block_all_resources) # Block everything except HTML documents
+
+    ASINs = ["B09LNW3CY2", "B009KYJAJY", "B0B2D77YB8", "B0D3KPGFHL"]
+
     try:
         for ASIN in ASINs:
             scrape_amazon_com(page, ASIN)
