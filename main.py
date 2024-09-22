@@ -1,11 +1,26 @@
 from playwright.sync_api import sync_playwright, Playwright, Browser, Page, Route
+from dotenv import load_dotenv
+import os
 
+
+load_dotenv()
+
+PROXY_SERVER = os.getenv("PROXY_SERVER")
+PROXY_USERNAME = os.getenv("PROXY_USERNAME")
+PROXY_PASSWORD = os.getenv("PROXY_PASSWORD")
 
 def launch_browser() -> tuple[Playwright, Browser]:
     """Launch the Playwright browser and return the context and browser."""
 
     playwright = sync_playwright().start()
-    browser = playwright.chromium.launch(headless=True)
+    browser = playwright.chromium.launch(
+        proxy = {
+            "server": PROXY_SERVER,
+            "username": PROXY_USERNAME,
+            "password": PROXY_PASSWORD
+        },
+        headless=True
+    )
     return playwright, browser
 
 
