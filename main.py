@@ -6,7 +6,8 @@ def launch_browser():
 
     playwright = sync_playwright().start()
     browser = playwright.chromium.launch(headless=True)
-    return playwright, browser
+    context = browser.new_context(java_script_enabled=False)
+    return playwright, browser, context
 
 
 def close_browser(playwright, browser):
@@ -40,8 +41,8 @@ def scrape_amazon_com(page, ASIN: int):
 
 def main():
     ASINs = ["B09LNW3CY2", "B009KYJAJY", "B0B2D77YB8", "B0D3KPGFHL"]
-    playwright, browser = launch_browser()
-    page = browser.new_page()
+    playwright, browser, context = launch_browser()
+    page = context.new_page()
     try:
         for ASIN in ASINs:
             scrape_amazon_com(page, ASIN)
