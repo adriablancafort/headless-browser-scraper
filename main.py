@@ -1,23 +1,22 @@
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, Playwright, Browser, Page
 
 
-def launch_browser():
+def launch_browser() -> tuple[Playwright, Browser]:
     """Launch the Playwright browser and return the context and browser."""
 
     playwright = sync_playwright().start()
     browser = playwright.chromium.launch(headless=True)
-    context = browser.new_context(java_script_enabled=False)
-    return playwright, browser, context
+    return playwright, browser
 
 
-def close_browser(playwright, browser):
+def close_browser(playwright: Playwright, browser: Browser) -> None:
     """Close the Playwright browser and stop the Playwright context."""
 
     browser.close()
     playwright.stop()
 
 
-def scrape_amazon_com(page, ASIN: int):
+def scrape_amazon_com(page: Page, ASIN: int) -> None:
     """Scrape the Amazon product page for the given ASIN."""
 
     URL = f"https://www.amazon.com/dp/{ASIN}"
@@ -39,10 +38,10 @@ def scrape_amazon_com(page, ASIN: int):
     print(f"Price Fraction: {PRICE_FRACTION}")
 
 
-def main():
+def main() -> None:
     ASINs = ["B09LNW3CY2", "B009KYJAJY", "B0B2D77YB8", "B0D3KPGFHL"]
-    playwright, browser, context = launch_browser()
-    page = context.new_page()
+    playwright, browser = launch_browser()
+    page = browser.new_page()
     try:
         for ASIN in ASINs:
             scrape_amazon_com(page, ASIN)
